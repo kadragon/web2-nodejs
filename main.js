@@ -1,7 +1,7 @@
 import http from "http";
 import fs from "fs";
-import path from "path";
 
+import path from "path";
 const __dirname = path.resolve();
 
 const app = http.createServer(function (request, response) {
