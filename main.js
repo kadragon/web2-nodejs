@@ -1,13 +1,14 @@
 import http from "http";
 import url from "url";
-import { readFile, readdir, writeFile } from "node:fs";
+import { readFile, readdir, writeFile, unlink } from "node:fs";
 import qs from "querystring";
 
-const templateHTML = (title, contentList, description) => {
-  const template = `<!doctype html>
+const template = {
+  html: (url, title, contentList, description) => {
+    const template = `<!doctype html>
 <html>
 <head>
-  <title>WEB2 - ${title}</title>
+  <title>WEB - ${title}</title>
   <meta charset="utf-8">
 </head>
 <body>
@@ -15,22 +16,32 @@ const templateHTML = (title, contentList, description) => {
   <ul>
     ${contentList}
   </ul>
-  <a href="/create">create</a>
+  ${
+    url === "/"
+      ? title !== "Welcome"
+        ? `<a href="/update?id=${title}">update</a>
+        <form action="/delete_process" method="post" onsubmit="return confirm('삭제하시겠습니까?');">
+        <input type="hidden" name="id" value="${title}" />
+        <input type="submit" value="delete" />`
+        : `<a href="/create">create</a>`
+      : ``
+  }
+  
   <h2>${title}</h2>
   ${description}
 </body>
 </html>
 `;
-  return template;
-};
+    return template;
+  },
+  list: (contents) => {
+    let contentList = "";
+    contents.forEach((con) => {
+      contentList = contentList + `<li><a href="/?id=${con}">${con}</a></li>`;
+    });
 
-const templateList = (contents) => {
-  let contentList = "";
-  contents.forEach((con) => {
-    contentList = contentList + `<li><a href="/?id=${con}">${con}</a></li>`;
-  });
-
-  return contentList;
+    return contentList;
+  },
 };
 
 const app = http.createServer(function (request, response) {
@@ -51,7 +62,9 @@ const app = http.createServer(function (request, response) {
         const description = "Hello! Node.js";
 
         response.writeHead(200);
-        response.end(templateHTML(title, templateList(contents), description));
+        response.end(
+          template.html(pathName, title, template.list(contents), description),
+        );
       } else {
         const title = queryData.id;
         readFile(`data/${title}`, "utf-8", (err, description) => {
@@ -59,7 +72,12 @@ const app = http.createServer(function (request, response) {
 
           response.writeHead(200);
           response.end(
-            templateHTML(title, templateList(contents), description),
+            template.html(
+              pathName,
+              title,
+              template.list(contents),
+              description,
+            ),
           );
         });
       }
@@ -70,9 +88,10 @@ const app = http.createServer(function (request, response) {
 
       response.writeHead(200);
       response.end(
-        templateHTML(
+        template.html(
+          pathName,
           title,
-          templateList(contents),
+          template.list(contents),
           `
       <form action="/create_process" method="post">
       <p><input type="text" name="title" placeholder="title"></p>
@@ -95,9 +114,9 @@ const app = http.createServer(function (request, response) {
     request.on("end", () => {
       const post = qs.parse(body);
       const title = post.title;
-      const descripion = post.description;
+      const description = post.description;
 
-      writeFile(`data/${title}`, descripion, "utf-8", (err) => {
+      writeFile(`data/${title}`, description, "utf-8", (err) => {
         if (err) throw err;
         console.log("The file has been saved!");
 
@@ -106,6 +125,76 @@ const app = http.createServer(function (request, response) {
         });
         response.end();
       });
+    });
+  } else if (pathName === "/update") {
+    readFile(`data/${queryData.id}`, "utf-8", (err, data) => {
+      if (err) throw err;
+      const title = queryData.id;
+      const descripion = data;
+
+      response.writeHead(200);
+      response.end(
+        template.html(
+          pathName,
+          title,
+          [],
+          `<form action="/update_process" method="post">
+      <p><input type="hidden" name="id" placeholder="title" value="${title}" ></p>
+      <p><input type="text" name="title" placeholder="title" value="${title}" ></p>
+      <p>
+      <textarea name="description" placeholder="description">${descripion}</textarea>
+      </p>
+      <p>
+      <input type="submit">
+      </p>
+      </form>`,
+        ),
+      );
+    });
+  } else if (pathName === "/update_process") {
+    let body = "";
+    request.on("data", (data) => {
+      body += data;
+    });
+    request.on("end", () => {
+      const post = qs.parse(body);
+      const id = post.id;
+      const title = post.title;
+      const description = post.description;
+
+      if (id !== title) {
+        rename(`data/${id}`, `data/${title}`, (err) => {
+          if (err) throw err;
+        });
+      }
+
+      writeFile(`data/${title}`, description, "utf-8", (err) => {
+        if (err) throw err;
+        console.log("The file has been saved!");
+
+        response.writeHead(302, {
+          Location: `/?id=${title}`,
+        });
+        response.end();
+      });
+    });
+  } else if (pathName === "/delete_process") {
+    let body = "";
+    request.on("data", (data) => {
+      body += data;
+    });
+    request.on("end", () => {
+      const post = qs.parse(body);
+      const id = post.id;
+
+      unlink(`data/${id}`, (err) => {
+        if (err) throw err;
+      });
+
+      response.writeHead(302, {
+        Location: "/",
+      });
+      response.end();
     });
   } else {
     response.writeHead(404);
