@@ -1,6 +1,6 @@
 import http from "http";
 import url from "url";
-import { readFile, readdir } from "node:fs";
+import { readFile, readdir, writeFile } from "node:fs";
 import qs from "querystring";
 
 const templateHTML = (title, contentList, description) => {
@@ -96,10 +96,17 @@ const app = http.createServer(function (request, response) {
       const post = qs.parse(body);
       const title = post.title;
       const descripion = post.description;
-    });
 
-    response.writeHead(200);
-    response.end("success");
+      writeFile(`data/${title}`, descripion, "utf-8", (err) => {
+        if (err) throw err;
+        console.log("The file has been saved!");
+
+        response.writeHead(302, {
+          Location: `/?id=${title}`,
+        });
+        response.end();
+      });
+    });
   } else {
     response.writeHead(404);
     response.end("Not found");
