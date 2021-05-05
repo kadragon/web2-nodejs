@@ -1,6 +1,7 @@
 import http from "http";
 import url from "url";
 import { readFile, readdir } from "node:fs";
+import qs from "querystring";
 
 const templateHTML = (title, contentList, description) => {
   const template = `<!doctype html>
@@ -10,10 +11,11 @@ const templateHTML = (title, contentList, description) => {
   <meta charset="utf-8">
 </head>
 <body>
-  <h2><a href="/">WEB</a></h2>
+  <h2><a href="/">WEB2</a></h2>
   <ul>
     ${contentList}
   </ul>
+  <a href="/create">create</a>
   <h2>${title}</h2>
   ${description}
 </body>
@@ -62,6 +64,42 @@ const app = http.createServer(function (request, response) {
         });
       }
     });
+  } else if (pathName === "/create") {
+    readdir("./data", (err, contents) => {
+      const title = "WEB - Create";
+
+      response.writeHead(200);
+      response.end(
+        templateHTML(
+          title,
+          templateList(contents),
+          `
+      <form action="/create_process" method="post">
+      <p><input type="text" name="title" placeholder="title"></p>
+      <p>
+      <textarea name="description" placeholder="description"></textarea>
+      </p>
+      <p>
+      <input type="submit">
+      </p>
+      </form>
+      `,
+        ),
+      );
+    });
+  } else if (pathName === "/create_process") {
+    let body = "";
+    request.on("data", (data) => {
+      body += data;
+    });
+    request.on("end", () => {
+      const post = qs.parse(body);
+      const title = post.title;
+      const descripion = post.description;
+    });
+
+    response.writeHead(200);
+    response.end("success");
   } else {
     response.writeHead(404);
     response.end("Not found");
