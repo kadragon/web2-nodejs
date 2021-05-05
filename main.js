@@ -1,23 +1,20 @@
 import http from "http";
-import fs from "fs";
 import url from "url";
 import { readFile } from "node:fs";
 
 const app = http.createServer(function (request, response) {
-  let _url = request.url;
+  const _url = request.url;
+  const queryData = url.parse(_url, true).query;
+  const pathName = url.parse(_url, true).pathname;
+  const title = queryData.id;
 
   if (_url === "/favicon.ico") {
     return response.writeHead(404);
   }
 
-  const queryData = url.parse(_url, true).query;
-  const title = queryData.id !== undefined ? queryData.id : "Welcome";
-
-  readFile(`data/${title}`, "utf-8", (err, data) => {
-    if (err) throw err;
-    response.writeHead(200);
-
-    let template = `<!doctype html>
+  if (pathName === "/") {
+    readFile(`data/${title}`, "utf-8", (err, data) => {
+      let template = `<!doctype html>
 <html>
 <head>
   <title>WEB2 - ${title}</title>
@@ -36,8 +33,13 @@ const app = http.createServer(function (request, response) {
 </html>
 `;
 
-    response.end(template);
-  });
+      response.writeHead(200);
+      response.end(template);
+    });
+  } else {
+    response.writeHead(404);
+    response.end("Not found");
+  }
 });
 
 app.listen(3000);

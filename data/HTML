@@ -11,7 +11,6 @@
       and render them into multimedia web pages. HTML describes the structure of
       a web page semantically and originally included cues for the appearance of
       the document.
-      <img src="coding.jpg" width="100%" />
     </p>
     <p style="margin-top: 45px">
       HTML elements are the building blocks of HTML pages. With HTML constructs,
