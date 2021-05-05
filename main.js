@@ -2,11 +2,7 @@ import http from "http";
 import url from "url";
 import { readFile, readdir } from "node:fs";
 
-function makeContents(title, contents, description) {
-  let contentList = "";
-  contents.forEach((con) => {
-    contentList = contentList + `<li><a href="/?id=${con}">${con}</a></li>`;
-  });
+const templateHTML = (title, contentList, description) => {
   const template = `<!doctype html>
 <html>
 <head>
@@ -14,7 +10,7 @@ function makeContents(title, contents, description) {
   <meta charset="utf-8">
 </head>
 <body>
-  <h1><a href="/">WEB</a></h1>
+  <h2><a href="/">WEB</a></h2>
   <ul>
     ${contentList}
   </ul>
@@ -24,7 +20,16 @@ function makeContents(title, contents, description) {
 </html>
 `;
   return template;
-}
+};
+
+const templateList = (contents) => {
+  let contentList = "";
+  contents.forEach((con) => {
+    contentList = contentList + `<li><a href="/?id=${con}">${con}</a></li>`;
+  });
+
+  return contentList;
+};
 
 const app = http.createServer(function (request, response) {
   const _url = request.url;
@@ -44,14 +49,16 @@ const app = http.createServer(function (request, response) {
         const description = "Hello! Node.js";
 
         response.writeHead(200);
-        response.end(makeContents(title, contents, description));
+        response.end(templateHTML(title, templateList(contents), description));
       } else {
         const title = queryData.id;
         readFile(`data/${title}`, "utf-8", (err, description) => {
           if (err) throw err;
 
           response.writeHead(200);
-          response.end(makeContents(title, contents, description));
+          response.end(
+            templateHTML(title, templateList(contents), description),
+          );
         });
       }
     });
