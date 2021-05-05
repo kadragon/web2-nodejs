@@ -1,8 +1,12 @@
 import http from "http";
 import url from "url";
-import { readFile } from "node:fs";
+import { readFile, readdir } from "node:fs";
 
-function makeContents(title, description) {
+function makeContents(title, contents, description) {
+  let contentList = "";
+  contents.forEach((con) => {
+    contentList = contentList + `<li><a href="/?id=${con}">${con}</a></li>`;
+  });
   const template = `<!doctype html>
 <html>
 <head>
@@ -11,11 +15,9 @@ function makeContents(title, description) {
 </head>
 <body>
   <h1><a href="/">WEB</a></h1>
-  <ol>
-    <li><a href="/?id=HTML">HTML</a></li>
-    <li><a href="/?id=CSS">CSS</a></li>
-    <li><a href="/?id=JavaScript">JavaScript</a></li>
-  </ol>
+  <ul>
+    ${contentList}
+  </ul>
   <h2>${title}</h2>
   ${description}
 </body>
@@ -34,21 +36,25 @@ const app = http.createServer(function (request, response) {
   }
 
   if (pathName === "/") {
-    if (queryData.id === undefined) {
-      const title = "Welcome";
-      const description = "Hello! Node.js";
+    readdir("./data", (err, contents) => {
+      if (err) throw err;
 
-      response.writeHead(200);
-      response.end(makeContents(title, description));
-    } else {
-      const title = queryData.id;
-      readFile(`data/${title}`, "utf-8", (err, description) => {
-        if (err) throw err;
+      if (queryData.id === undefined) {
+        const title = "Welcome";
+        const description = "Hello! Node.js";
 
         response.writeHead(200);
-        response.end(makeContents(title, description));
-      });
-    }
+        response.end(makeContents(title, contents, description));
+      } else {
+        const title = queryData.id;
+        readFile(`data/${title}`, "utf-8", (err, description) => {
+          if (err) throw err;
+
+          response.writeHead(200);
+          response.end(makeContents(title, contents, description));
+        });
+      }
+    });
   } else {
     response.writeHead(404);
     response.end("Not found");
